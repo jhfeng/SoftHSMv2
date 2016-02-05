@@ -35,12 +35,6 @@
 #include "config.h"
 #include "OSSLEVPMacAlgorithm.h"
 
-// Destructor
-OSSLEVPMacAlgorithm::~OSSLEVPMacAlgorithm()
-{
-	HMAC_CTX_cleanup(&curCTX);
-}
-
 // Signing functions
 bool OSSLEVPMacAlgorithm::signInit(const SymmetricKey* key)
 {
@@ -51,14 +45,14 @@ bool OSSLEVPMacAlgorithm::signInit(const SymmetricKey* key)
 	}
 
 	// Initialize the context
-	HMAC_CTX_init(&curCTX);
+	curCTX = HMAC_CTX_new();
 
 	// Initialize EVP signing
-	if (!HMAC_Init(&curCTX, key->getKeyBits().const_byte_str(), key->getKeyBits().size(), getEVPHash()))
+	if (!HMAC_Init_ex(curCTX, key->getKeyBits().const_byte_str(), key->getKeyBits().size(), getEVPHash(), NULL))
 	{
-		ERROR_MSG("HMAC_Init failed");
+		ERROR_MSG("HMAC_Init_ex failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		ByteString dummy;
 		MacAlgorithm::signFinal(dummy);
@@ -79,11 +73,11 @@ bool OSSLEVPMacAlgorithm::signUpdate(const ByteString& dataToSign)
 	// The GOST implementation in OpenSSL will segfault if we update with zero length.
 	if (dataToSign.size() == 0) return true;
 
-	if (!HMAC_Update(&curCTX, dataToSign.const_byte_str(), dataToSign.size()))
+	if (!HMAC_Update(curCTX, dataToSign.const_byte_str(), dataToSign.size()))
 	{
 		ERROR_MSG("HMAC_Update failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		ByteString dummy;
 		MacAlgorithm::signFinal(dummy);
@@ -104,18 +98,18 @@ bool OSSLEVPMacAlgorithm::signFinal(ByteString& signature)
 	signature.resize(EVP_MD_size(getEVPHash()));
 	unsigned int outLen = signature.size();
 
-	if (!HMAC_Final(&curCTX, &signature[0], &outLen))
+	if (!HMAC_Final(curCTX, &signature[0], &outLen))
 	{
 		ERROR_MSG("HMAC_Final failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		return false;
 	}
 
 	signature.resize(outLen);
 
-	HMAC_CTX_cleanup(&curCTX);
+	HMAC_CTX_free(curCTX);
 
 	return true;
 }
@@ -130,14 +124,14 @@ bool OSSLEVPMacAlgorithm::verifyInit(const SymmetricKey* key)
 	}
 
 	// Initialize the context
-	HMAC_CTX_init(&curCTX);
+	curCTX = HMAC_CTX_new();
 
 	// Initialize EVP signing
-	if (!HMAC_Init(&curCTX, key->getKeyBits().const_byte_str(), key->getKeyBits().size(), getEVPHash()))
+	if (!HMAC_Init_ex(curCTX, key->getKeyBits().const_byte_str(), key->getKeyBits().size(), getEVPHash(), NULL))
 	{
-		ERROR_MSG("HMAC_Init failed");
+		ERROR_MSG("HMAC_Init_ex failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		ByteString dummy;
 		MacAlgorithm::verifyFinal(dummy);
@@ -158,11 +152,11 @@ bool OSSLEVPMacAlgorithm::verifyUpdate(const ByteString& originalData)
 	// The GOST implementation in OpenSSL will segfault if we update with zero length.
 	if (originalData.size() == 0) return true;
 
-	if (!HMAC_Update(&curCTX, originalData.const_byte_str(), originalData.size()))
+	if (!HMAC_Update(curCTX, originalData.const_byte_str(), originalData.size()))
 	{
 		ERROR_MSG("HMAC_Update failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		ByteString dummy;
 		MacAlgorithm::verifyFinal(dummy);
@@ -184,16 +178,16 @@ bool OSSLEVPMacAlgorithm::verifyFinal(ByteString& signature)
 	unsigned int outLen = EVP_MD_size(getEVPHash());
 	macResult.resize(outLen);
 
-	if (!HMAC_Final(&curCTX, &macResult[0], &outLen))
+	if (!HMAC_Final(curCTX, &macResult[0], &outLen))
 	{
 		ERROR_MSG("HMAC_Final failed");
 
-		HMAC_CTX_cleanup(&curCTX);
+		HMAC_CTX_free(curCTX);
 
 		return false;
 	}
 
-	HMAC_CTX_cleanup(&curCTX);
+	HMAC_CTX_free(curCTX);
 
 	return macResult == signature;
 }

@@ -44,12 +44,7 @@ class OSSLEVPMacAlgorithm : public MacAlgorithm
 {
 public:
 	// Constructor
-	OSSLEVPMacAlgorithm() {
-		HMAC_CTX_init(&curCTX);
-	};
-
-	// Destructor
-	~OSSLEVPMacAlgorithm();
+	OSSLEVPMacAlgorithm() { };
 
 	// Signing functions
 	virtual bool signInit(const SymmetricKey* key);
@@ -70,7 +65,7 @@ protected:
 
 private:
 	// The current context
-	HMAC_CTX curCTX;
+	HMAC_CTX *curCTX;
 };
 
 #endif // !_SOFTHSM_V2_OSSLEVPMACALGORITHM_H

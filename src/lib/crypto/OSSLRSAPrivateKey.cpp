@@ -52,7 +52,7 @@ OSSLRSAPrivateKey::OSSLRSAPrivateKey(const RSA* inRSA)
 	rsa = RSA_new();
 
 	// Use the OpenSSL implementation and not any engine
-	RSA_set_method(rsa, RSA_PKCS1_SSLeay());
+	RSA_set_method(rsa, RSA_PKCS1_OpenSSL());
 
 	setFromOSSL(inRSA);
 }

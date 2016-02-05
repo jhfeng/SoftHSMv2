@@ -41,12 +41,7 @@ class OSSLGOST : public AsymmetricAlgorithm
 {
 public:
 	// Constructor
-	OSSLGOST() : AsymmetricAlgorithm() {
-		EVP_MD_CTX_init(&curCTX);
-	}
-
-	// Destructor
-	~OSSLGOST();
+	OSSLGOST() : AsymmetricAlgorithm() { }
 
 	// Signing functions
 	virtual bool sign(PrivateKey* privateKey, const ByteString& dataToSign, ByteString& signature, const AsymMech::Type mechanism, const void* param = NULL, const size_t paramLen = 0);
@@ -79,7 +74,7 @@ public:
 	virtual AsymmetricParameters* newParameters();
 
 private:
-	EVP_MD_CTX curCTX;
+	EVP_MD_CTX *curCTX;
 };
 
 #endif // !_SOFTHSM_V2_OSSLGOST_H

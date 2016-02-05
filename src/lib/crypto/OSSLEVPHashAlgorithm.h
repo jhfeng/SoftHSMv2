@@ -41,12 +41,7 @@ class OSSLEVPHashAlgorithm : public HashAlgorithm
 {
 public:
 	// Base constructors
-	OSSLEVPHashAlgorithm() : HashAlgorithm() {
-		EVP_MD_CTX_init(&curCTX);
-	}
-
-	// Destructor
-	~OSSLEVPHashAlgorithm();
+	OSSLEVPHashAlgorithm() : HashAlgorithm() { }
 
 	// Hashing functions
 	virtual bool hashInit();
@@ -59,7 +54,7 @@ protected:
 
 private:
 	// Current hashing context
-	EVP_MD_CTX curCTX;
+	EVP_MD_CTX *curCTX;
 };
 
 #endif // !_SOFTHSM_V2_OSSLEVPHASHALGORITHM_H

@@ -45,12 +45,6 @@
 #include <openssl/err.h>
 #include <string.h>
 
-// Destructor
-OSSLGOST::~OSSLGOST()
-{
-	EVP_MD_CTX_cleanup(&curCTX);
-}
-
 // Signing functions
 bool OSSLGOST::sign(PrivateKey* privateKey, const ByteString& dataToSign,
 		    ByteString& signature, const AsymMech::Type mechanism,
@@ -153,14 +147,14 @@ bool OSSLGOST::signInit(PrivateKey* privateKey, const AsymMech::Type mechanism,
 		return false;
 	}
 
-	EVP_MD_CTX_init(&curCTX);
+	curCTX = EVP_MD_CTX_new();
 
 	const EVP_MD* md = OSSLCryptoFactory::i()->EVP_GOST_34_11;
-	if (!EVP_DigestInit_ex(&curCTX, md, NULL))
+	if (!EVP_DigestInit_ex(curCTX, md, NULL))
 	{
 		ERROR_MSG("EVP_DigestInit_ex failed");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		ByteString dummy;
 		AsymmetricAlgorithm::signFinal(dummy);
@@ -178,11 +172,11 @@ bool OSSLGOST::signUpdate(const ByteString& dataToSign)
 		return false;
 	}
 
-	if (!EVP_DigestUpdate(&curCTX, dataToSign.const_byte_str(), dataToSign.size()))
+	if (!EVP_DigestUpdate(curCTX, dataToSign.const_byte_str(), dataToSign.size()))
 	{
 		ERROR_MSG("EVP_DigestUpdate failed");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		ByteString dummy;
 		AsymmetricAlgorithm::signFinal(dummy);
@@ -211,25 +205,25 @@ bool OSSLGOST::signFinal(ByteString& signature)
 	{
 		ERROR_MSG("Could not get the OpenSSL private key");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		return false;
 	}
 
 	signature.resize(EVP_PKEY_size(pkey));
 	outLen = signature.size();
-	if (!EVP_SignFinal(&curCTX, &signature[0], &outLen, pkey))
+	if (!EVP_SignFinal(curCTX, &signature[0], &outLen, pkey))
 	{
 		ERROR_MSG("EVP_SignFinal failed");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		return false;
 	}
 
 	signature.resize(outLen);
 
-	EVP_MD_CTX_cleanup(&curCTX);
+	EVP_MD_CTX_free(curCTX);
 
 	return true;
 }
@@ -323,14 +317,14 @@ bool OSSLGOST::verifyInit(PublicKey* publicKey, const AsymMech::Type mechanism,
 		return false;
 	}
 
-	EVP_MD_CTX_init(&curCTX);
+	curCTX = EVP_MD_CTX_new();
 
 	const EVP_MD* md = OSSLCryptoFactory::i()->EVP_GOST_34_11;
-	if (!EVP_DigestInit_ex(&curCTX, md, NULL))
+	if (!EVP_DigestInit_ex(curCTX, md, NULL))
 	{
 		ERROR_MSG("EVP_DigestInit_ex failed");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		ByteString dummy;
 		AsymmetricAlgorithm::verifyFinal(dummy);
@@ -348,11 +342,11 @@ bool OSSLGOST::verifyUpdate(const ByteString& originalData)
 		return false;
 	}
 
-	if (!EVP_DigestUpdate(&curCTX, originalData.const_byte_str(), originalData.size()))
+	if (!EVP_DigestUpdate(curCTX, originalData.const_byte_str(), originalData.size()))
 	{
 		ERROR_MSG("EVP_DigestUpdate failed");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		ByteString dummy;
 		AsymmetricAlgorithm::verifyFinal(dummy);
@@ -381,13 +375,13 @@ bool OSSLGOST::verifyFinal(const ByteString& signature)
 	{
 		ERROR_MSG("Could not get the OpenSSL public key");
 
-		EVP_MD_CTX_cleanup(&curCTX);
+		EVP_MD_CTX_free(curCTX);
 
 		return false;
 	}
 
-	ret = EVP_VerifyFinal(&curCTX, signature.const_byte_str(), signature.size(), pkey);
-	EVP_MD_CTX_cleanup(&curCTX);
+	ret = EVP_VerifyFinal(curCTX, signature.const_byte_str(), signature.size(), pkey);
+	EVP_MD_CTX_free(curCTX);
 	if (ret != 1)
 	{
 		if (ret < 0)
